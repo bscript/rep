@@ -24,6 +24,7 @@ const sendBtn = document.getElementById('send-btn');
 const rawResponseDisplay = document.getElementById('raw-response-display');
 const resStatus = document.getElementById('res-status');
 const resTime = document.getElementById('res-time');
+const resSize = document.getElementById('res-size');
 const historyBackBtn = document.getElementById('history-back');
 const historyFwdBtn = document.getElementById('history-fwd');
 const copyReqBtn = document.getElementById('copy-req-btn');
@@ -753,6 +754,7 @@ function selectRequest(index) {
     resStatus.textContent = '';
     resStatus.className = 'status-badge';
     resTime.textContent = '';
+    resSize.textContent = '';
 }
 
 function setupEventListeners() {
@@ -1548,6 +1550,10 @@ async function sendRequest() {
 
         const responseBody = await response.text();
 
+        // Calculate size
+        const size = new TextEncoder().encode(responseBody).length;
+        resSize.textContent = formatBytes(size);
+
         console.log('Response body length:', responseBody.length);
 
         // Display Status
@@ -1775,9 +1781,22 @@ function clearAllRequests() {
     resStatus.textContent = '';
     resStatus.className = 'status-badge';
     resTime.textContent = '';
+    resSize.textContent = '';
 
     // Reset History
     requestHistory = [];
     historyIndex = -1;
     updateHistoryButtons();
+}
+
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
