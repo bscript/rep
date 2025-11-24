@@ -1,0 +1,41 @@
+load("@rules_kotlin//kotlin:android.bzl", "kt_android_library")
+
+# Kotlin Android Library
+kt_android_library(
+    name = "rep_plus_lib",
+    srcs = glob([
+        "src/main/kotlin/**/*.kt",
+    ]),
+    custom_package = "com.rep.plus",
+    manifest = "src/main/AndroidManifest.xml",
+    resource_files = glob([
+        "src/main/res/**/*",
+    ]),
+    deps = [
+        "@androidsdk//com.android.support:support-v4",
+    ],
+)
+
+# Android Binary
+android_binary(
+    name = "rep_plus",
+    custom_package = "com.rep.plus",
+    manifest = "src/main/AndroidManifest.xml",
+    manifest_values = {
+        "minSdkVersion": "21",
+        "targetSdkVersion": "33",
+        "versionCode": "1",
+        "versionName": "1.0",
+    },
+    deps = [":rep_plus_lib"],
+    assets = glob([
+        "src/main/assets/**/*",
+    ]),
+    assets_dir = "src/main/assets",
+    resource_files = glob([
+        "src/main/res/**/*",
+    ]),
+    dexopts = [
+        "--min-sdk-version=21",
+    ],
+)

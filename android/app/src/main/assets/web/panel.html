@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repeater Panel</title>
+    <link rel="stylesheet" href="css/panel.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Left Sidebar: Request List -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="search-bar" placeholder="Filter requests...">
+                        <button id="regex-toggle" class="regex-toggle-inline" title="Toggle Regex Mode">
+                            <span class="regex-icon">.*</span>
+                        </button>
+                    </div>
+                    <button id="clear-all-btn" class="icon-btn" style="margin-left: 4px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                                fill="currentColor" />
+                        </svg>
+                    </button>
+                    <div class="divider-vertical"
+                        style="width: 1px; height: 20px; background: var(--border-color); margin: 0 4px;"></div>
+                    <button id="settings-btn" class="icon-btn">
+                        <svg viewBox="0 0 24 24" width="14" height="14">
+                            <path
+                                d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5m9 0a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5"
+                                fill="currentColor" />
+                        </svg>
+                    </button>
+                    <button id="import-btn" class="icon-btn">
+                        <svg viewBox="0 0 24 24" width="14" height="14">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor" />
+                        </svg>
+                    </button>
+                    <button id="export-btn" class="icon-btn">
+                        <svg viewBox="0 0 24 24" width="14" height="14">
+                            <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" fill="currentColor" />
+                        </svg>
+                    </button>
+                    <button id="scan-secrets-btn" class="icon-btn" title="Find Secrets in JS Files">
+                        <svg viewBox="0 0 24 24" width="14" height="14">
+                            <path
+                                d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"
+                                fill="currentColor" />
+                        </svg>
+                    </button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                </div>
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="GET">GET</button>
+                    <button class="filter-btn" data-filter="POST">POST</button>
+                    <button class="filter-btn" data-filter="PUT">PUT</button>
+                    <button class="filter-btn" data-filter="DELETE">DELETE</button>
+                    <button class="filter-btn" data-filter="starred" title="Show Starred">★</button>
+                </div>
+            </div>
+            <div id="request-list" class="request-list">
+                <!-- Requests will be populated here -->
+                <div class="empty-state">Listening for requests...</div>
+            </div>
+        </div>
+
+        <!-- Sidebar Resize Handle -->
+        <div class="resize-handle sidebar-resize-handle"></div>
+
+        <!-- Main Content: Vertical Split (Top: Request/Response, Bottom: Bulk Replay) -->
+        <div class="main-content">
+            <!-- Top Section: Request/Response Split View -->
+            <div class="split-view-container">
+                <!-- Request Editor (Top/Left) -->
+                <div class="pane request-pane">
+                    <div class="pane-header">
+                        <h3>Request</h3>
+                        <div class="header-actions">
+                            <div class="dropdown-menu-container">
+                                <button id="ai-menu-btn" class="icon-btn" title="AI Actions">
+                                    <svg viewBox="0 0 24 24" width="16" height="16">
+                                        <path
+                                            d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"
+                                            fill="currentColor" />
+                                    </svg>
+                                    <span style="font-size: 10px; margin-left: 2px;">▼</span>
+                                </button>
+                                <div id="ai-menu-dropdown" class="dropdown-content">
+                                    <div class="dropdown-item" id="explain-btn">
+                                        <span>✨ Explain Request</span>
+                                    </div>
+                                    <div class="dropdown-item" id="suggest-attack-btn">
+                                        <span>🎯 Suggest Attack Vectors</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="bulk-replay-btn" class="icon-btn"
+                                title="Bulk Replay - Mark parameters with § to start attack" disabled>
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path d="M7 2v11h3v9l7-12h-4l4-8z" fill="currentColor" />
+                                </svg>
+                            </button>
+                            <div class="divider-vertical"
+                                style="width: 1px; height: 20px; background: var(--border-color); margin: 0 4px;"></div>
+                            <div class="history-nav">
+                                <button id="history-back" class="icon-btn" title="Previous request" disabled>
+                                    <svg viewBox="0 0 24 24" width="16" height="16">
+                                        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                                            fill="currentColor" />
+                                    </svg>
+                                </button>
+                                <button id="history-fwd" class="icon-btn" title="Next request" disabled>
+                                    <svg viewBox="0 0 24 24" width="16" height="16">
+                                        <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"
+                                            fill="currentColor" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <label class="https-toggle">
+                                <input type="checkbox" id="use-https" checked>
+                                <span>HTTPS</span>
+                            </label>
+                            <button id="copy-req-btn" class="icon-btn" title="Copy Request">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path
+                                        d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                                        fill="currentColor" />
+                                </svg>
+                            </button>
+                            <button id="send-btn" class="primary-btn">Send</button>
+                        </div>
+                    </div>
+                    <div class="pane-body">
+                        <div class="editor-container">
+                            <div id="raw-request-input" contenteditable="true" class="editor" spellcheck="false">
+                            </div>
+                        </div>
+                        <div class="search-bar-container">
+                            <input type="text" id="request-search" class="search-input"
+                                placeholder="Search in request...">
+                            <button id="request-search-prev" class="search-nav-btn" title="Previous match" disabled>
+                                <svg viewBox="0 0 24 24" width="14" height="14">
+                                    <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill="currentColor" />
+                                </svg>
+                            </button>
+                            <button id="request-search-next" class="search-nav-btn" title="Next match" disabled>
+                                <svg viewBox="0 0 24 24" width="14" height="14">
+                                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="currentColor" />
+                                </svg>
+                            </button>
+                            <span id="request-search-count" class="search-count"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resize Handle (Horizontal) -->
+                <div class="resize-handle pane-resize-handle"></div>
+
+                <!-- Response Viewer (Bottom/Right) -->
+                <div class="pane response-pane">
+                    <div class="pane-header">
+                        <h3>Response</h3>
+                        <div class="header-actions">
+                            <div class="header-badges">
+                                <span id="res-status" class="status-badge"></span>
+                                <span id="res-time" class="time-badge"></span>
+                                <span id="res-size" class="size-badge"></span>
+                            </div>
+                            <label class="diff-toggle"
+                                style="display: none; margin-left: 10px; font-size: 12px; align-items: center; gap: 4px;">
+                                <input type="checkbox" id="show-diff">
+                                <span>Diff View</span>
+                            </label>
+                            <button id="copy-res-btn" class="icon-btn" title="Copy Response">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path
+                                        d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                                        fill="currentColor" />
+                                </svg>
+                            </button>
+                            <button id="screenshot-btn" class="icon-btn" title="Screenshot Request/Response">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path
+                                        d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"
+                                        fill="currentColor" />
+                                </svg>
+                            </button>
+                            <div class="divider-vertical"
+                                style="width: 1px; height: 20px; background: var(--border-color); margin: 0 4px;"></div>
+                            <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme">
+                                <svg viewBox="0 0 24 24" width="14" height="14">
+                                    <path
+                                        d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"
+                                        fill="currentColor" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pane-body">
+                        <div class="editor-container">
+                            <pre id="raw-response-display"></pre>
+                        </div>
+                        <div class="search-bar-container">
+                            <input type="text" id="response-search" class="search-input"
+                                placeholder="Search in response...">
+                            <button id="response-search-prev" class="search-nav-btn" title="Previous match" disabled>
+                                <svg viewBox="0 0 24 24" width="14" height="14">
+                                    <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill="currentColor" />
+                                </svg>
+                            </button>
+                            <button id="response-search-next" class="search-nav-btn" title="Next match" disabled>
+                                <svg viewBox="0 0 24 24" width="14" height="14">
+                                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="currentColor" />
+                                </svg>
+                            </button>
+                            <span id="response-search-count" class="search-count"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resize Handle (Vertical) -->
+            <div class="vertical-resize-handle" style="display: none;"></div>
+
+            <!-- Bulk Replay Pane (Bottom) -->
+            <div id="bulk-replay-pane" class="pane bulk-replay-pane" style="display: none;">
+                <div class="pane-header">
+                    <h3>Bulk Replay Results</h3>
+                    <div class="header-actions">
+                        <div class="progress-container">
+                            <div id="bulk-progress-bar" class="progress-bar"></div>
+                            <span id="bulk-progress-text">0/0</span>
+                        </div>
+                        <button id="bulk-stop-btn" class="icon-btn" title="Pause Attack">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" fill="currentColor" />
+                            </svg>
+                        </button>
+                        <button id="bulk-close-btn" class="icon-btn" title="Close">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path
+                                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                    fill="currentColor" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="pane-body">
+                    <div class="table-container">
+                        <table id="bulk-results-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Payload</th>
+                                    <th>Status</th>
+                                    <th>Size</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Results -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu for Encode/Decode -->
+    <div id="context-menu" class="context-menu">
+        <div class="context-menu-item" id="ctx-explain-ai">
+            <span>✨ Explain with AI</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item has-submenu">
+            <span>Convert</span>
+            <span class="submenu-arrow">▶</span>
+            <div class="context-submenu">
+                <div class="context-submenu-group">
+                    <div class="context-submenu-header">URL</div>
+                    <div class="context-menu-item" data-action="url-decode">URL Decode</div>
+                    <div class="context-menu-item" data-action="url-encode-key">URL Encode (Key Char)</div>
+                    <div class="context-menu-item" data-action="url-encode-all">URL Encode (All Char)</div>
+                    <div class="context-menu-item" data-action="url-encode-unicode">URL Encode (All Char Unicode)</div>
+                </div>
+                <div class="context-submenu-separator"></div>
+                <div class="context-submenu-group">
+                    <div class="context-submenu-header">Base64</div>
+                    <div class="context-menu-item" data-action="base64-decode">Base64 Decode</div>
+                    <div class="context-menu-item" data-action="base64-encode">Base64 Encode</div>
+                </div>
+                <div class="context-submenu-separator"></div>
+                <div class="context-submenu-group">
+                    <div class="context-submenu-header">JWT</div>
+                    <div class="context-menu-item" data-action="jwt-decode">JWT Decode</div>
+                </div>
+            </div>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="mark-payload">Mark Payload (§)</div>
+    </div>
+
+    <!-- Bulk Replay Configuration Modal -->
+    <div id="bulk-config-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Bulk Replay Configuration</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Attack Type Selection -->
+                <div class="form-group">
+                    <label>Attack Type</label>
+                    <select id="attack-type" class="form-control">
+                        <option value="sniper">Sniper - One position at a time</option>
+                        <option value="battering-ram">Battering Ram - Same payload for all positions</option>
+                        <option value="pitchfork">Pitchfork - Zip payloads across positions</option>
+                        <option value="cluster-bomb">Cluster Bomb - All combinations</option>
+                    </select>
+                    <p class="help-text" id="attack-type-help">Sniper: Tests each position independently with its own
+                        payloads.</p>
+                </div>
+
+                <!-- Payload Positions -->
+                <div class="form-group">
+                    <label>Payload Positions Found: <span id="payload-count">0</span></label>
+                    <div id="positions-container">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Battering Ram: Single Shared Payload -->
+                <div id="battering-ram-config" style="display: none;">
+                    <div class="form-group">
+                        <label>Shared Payload Configuration</label>
+                        <select class="payload-type-select form-control">
+                            <option value="simple-list">Simple List</option>
+                            <option value="numbers">Numbers</option>
+                        </select>
+                    </div>
+
+                    <div class="payload-options-simple-list">
+                        <div class="form-group">
+                            <label>Payloads (one per line)</label>
+                            <textarea class="payload-list-input form-control" rows="8"
+                                placeholder="admin&#10;user&#10;guest"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="payload-options-numbers" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>From</label>
+                                <input type="number" class="num-from-input form-control" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label>To</label>
+                                <input type="number" class="num-to-input form-control" value="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Step</label>
+                                <input type="number" class="num-step-input form-control" value="1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="start-attack-btn" class="primary-btn">Start Attack</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="anthropic-api-key">Anthropic API Key</label>
+                    <input type="password" id="anthropic-api-key" class="form-control" placeholder="sk-ant-...">
+                    <p class="help-text">Required for "Explain Request" feature. Stored locally.</p>
+                </div>
+                <div class="form-group">
+                    <label for="anthropic-model">Model</label>
+                    <select id="anthropic-model" class="form-control">
+                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Oct 2024)</option>
+                        <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet (Jun 2024)</option>
+                        <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                        <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-settings-btn" class="primary-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Explanation Modal -->
+    <div id="explanation-modal" class="modal">
+        <div class="modal-content" style="width: 700px; max-width: 90vw;">
+            <div class="modal-header">
+                <h3>Request Explanation</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="explanation-content" class="markdown-body" style="line-height: 1.6; font-size: 14px;">
+                    <!-- Content populated by JS -->
+                    <div class="loading-spinner">Generating explanation...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secrets Modal -->
+    <div id="secrets-modal" class="modal">
+        <div class="modal-content" style="width: 800px; max-width: 95vw;">
+            <div class="modal-header">
+                <h3>Secrets Found</h3>
+                <div id="secrets-search-container" style="flex: 1; margin: 0 20px; display: none;">
+                    <input type="text" id="secrets-search" class="search-input" placeholder="Search secrets..."
+                        style="width: 100%;">
+                </div>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="secrets-progress" style="display: none; margin-bottom: 15px;">
+                    <div class="progress-container" style="width: 100%;">
+                        <div class="progress-bar" id="secrets-progress-bar"></div>
+                        <span id="secrets-progress-text">Scanning...</span>
+                    </div>
+                </div>
+                <div id="secrets-results">
+                    <!-- Results populated here -->
+                    <div class="empty-state">No secrets found yet. Click "Find Secrets" to scan captured JS files.</div>
+                </div>
+                <p class="disclaimer-text"
+                    style="margin-top: 15px; font-size: 11px; color: #888; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                    <strong>Disclaimer:</strong> Automated scanning may produce false positives. Please manually verify
+                    all findings.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Android Bridge - Load first to provide Chrome API compatibility -->
+    <script src="android-bridge.js"></script>
+
+    <script src="lib/html2canvas.min.js"></script>
+    <script src="lib/marked.min.js"></script>
+    <script src="lib/diff.min.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
