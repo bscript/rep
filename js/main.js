@@ -74,11 +74,76 @@ document.addEventListener('DOMContentLoaded', () => {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
     }
 
-    // Setup Network Listener
+    // Setup Network Listener (Current Tab)
     setupNetworkListener((request) => {
         const index = addRequest(request);
         renderRequestItem(request, index);
     });
+
+    // Setup Multi-tab Capture (Background Script)
+    function connectToBackground() {
+        try {
+            const port = chrome.runtime.connect({ name: "rep-panel" });
+            console.log("Connected to background service worker");
+
+            port.onMessage.addListener((msg) => {
+                if (msg.type === 'captured_request') {
+                    const req = msg.data;
+
+                    // Skip requests from the current inspected tab (handled by setupNetworkListener)
+                    // We check both tabId and if the URL matches the current inspected window URL (approximate)
+                    if (req.tabId === chrome.devtools.inspectedWindow.tabId) return;
+
+                    // Convert to HAR-like format
+                    const harEntry = {
+                        request: {
+                            method: req.method,
+                            url: req.url,
+                            headers: req.requestHeaders || [],
+                            postData: req.requestBody ? { text: req.requestBody } : undefined
+                        },
+                        response: {
+                            status: req.statusCode,
+                            statusText: req.statusLine || '',
+                            headers: req.responseHeaders || [],
+                            content: {
+                                mimeType: (req.responseHeaders || []).find(h => h.name.toLowerCase() === 'content-type')?.value || '',
+                                text: '' // Response body not available for background requests
+                            }
+                        },
+                        capturedAt: req.timeStamp,
+                        fromOtherTab: true // Flag to indicate source
+                    };
+
+                    // Filter static resources
+                    const url = req.url.toLowerCase();
+                    const staticExtensions = [
+                        '.css', '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.ico',
+                        '.woff', '.woff2', '.ttf', '.eot', '.otf',
+                        '.mp4', '.webm', '.mp3', '.wav',
+                        '.pdf'
+                    ];
+
+                    const isStatic = staticExtensions.some(ext => url.endsWith(ext) || url.includes(ext + '?'));
+                    if (isStatic) return;
+
+                    const index = addRequest(harEntry);
+                    renderRequestItem(harEntry, index);
+                }
+            });
+
+            port.onDisconnect.addListener(() => {
+                console.log("Disconnected from background, retrying in 2s...");
+                setTimeout(connectToBackground, 2000);
+            });
+
+        } catch (e) {
+            console.error('Failed to connect to background script:', e);
+            setTimeout(connectToBackground, 2000);
+        }
+    }
+
+    connectToBackground();
 
     // Setup UI Components
     setupResizeHandle();
