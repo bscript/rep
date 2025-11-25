@@ -45,10 +45,10 @@
                             <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" fill="currentColor" />
                         </svg>
                     </button>
-                    <button id="scan-secrets-btn" class="icon-btn" title="Find Secrets in JS Files">
+                    <button id="extractor-btn" class="icon-btn" title="Extract Secrets & Endpoints">
                         <svg viewBox="0 0 24 24" width="14" height="14">
                             <path
-                                d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"
+                                d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
                                 fill="currentColor" />
                         </svg>
                     </button>
@@ -422,33 +422,55 @@
         </div>
     </div>
 
-    <!-- Secrets Modal -->
-    <div id="secrets-modal" class="modal">
-        <div class="modal-content" style="width: 800px; max-width: 95vw;">
+    <!-- Extractor Modal -->
+    <div id="extractor-modal" class="modal">
+        <div class="modal-content" style="width: 900px; max-width: 95vw;">
             <div class="modal-header">
-                <h3>Secrets Found</h3>
-                <div id="secrets-search-container" style="flex: 1; margin: 0 20px; display: none;">
-                    <input type="text" id="secrets-search" class="search-input" placeholder="Search secrets..."
+                <div class="extractor-tabs">
+                    <button class="extractor-tab active" data-tab="secrets">Secrets</button>
+                    <button class="extractor-tab" data-tab="endpoints">Endpoints</button>
+                </div>
+                <div id="extractor-search-container" style="flex: 1; margin: 0 20px; display: none;">
+                    <input type="text" id="extractor-search" class="search-input" placeholder="Search..."
                         style="width: 100%;">
                 </div>
                 <button class="close-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div id="secrets-progress" style="display: none; margin-bottom: 15px;">
+                <div id="extractor-progress" style="display: none; margin-bottom: 15px;">
                     <div class="progress-container" style="width: 100%;">
-                        <div class="progress-bar" id="secrets-progress-bar"></div>
-                        <span id="secrets-progress-text">Scanning...</span>
+                        <div class="progress-bar" id="extractor-progress-bar"></div>
+                        <span id="extractor-progress-text">Scanning...</span>
                     </div>
                 </div>
-                <div id="secrets-results">
-                    <!-- Results populated here -->
-                    <div class="empty-state">No secrets found yet. Click "Find Secrets" to scan captured JS files.</div>
+
+                <!-- Secrets Tab Content -->
+                <div id="tab-secrets" class="tab-content active">
+                    <div id="secrets-results">
+                        <div class="empty-state">No secrets found yet. Click "Scan" to start.</div>
+                    </div>
+                    <p class="disclaimer-text"
+                        style="margin-top: 15px; font-size: 11px; color: #888; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                        <strong>Disclaimer:</strong> Automated scanning may produce false positives. Please manually
+                        verify all findings.
+                    </p>
                 </div>
-                <p class="disclaimer-text"
-                    style="margin-top: 15px; font-size: 11px; color: #888; border-top: 1px solid var(--border-color); padding-top: 10px;">
-                    <strong>Disclaimer:</strong> Automated scanning may produce false positives. Please manually verify
-                    all findings.
-                </p>
+
+                <!-- Endpoints Tab Content -->
+                <div id="tab-endpoints" class="tab-content">
+                    <div id="endpoints-results">
+                        <div class="empty-state">No endpoints found yet. Click "Scan" to start.</div>
+                    </div>
+                    <p class="disclaimer-text"
+                        style="margin-top: 15px; font-size: 11px; color: #888; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                        <strong>Note:</strong> Endpoint extraction uses pattern matching and may include some false
+                        positives. Endpoints are sorted by confidence level.
+                    </p>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 15px; display: flex; justify-content: flex-end;">
+                    <button id="start-scan-btn" class="primary-btn">Start Scan</button>
+                </div>
             </div>
         </div>
     </div>

@@ -9,6 +9,7 @@ import { setupNetworkListener, parseRequest, executeRequest } from './modules/ne
 import { getAISettings, saveAISettings, streamExplanationFromClaude } from './modules/ai.js';
 import { setupBulkReplay } from './modules/bulk-replay.js';
 import { scanForSecrets } from './modules/secret-scanner.js';
+import { extractEndpoints } from './modules/endpoint-extractor.js';
 import { formatBytes, highlightHTTP, renderDiff, copyToClipboard, escapeHtml } from './modules/utils.js';
 
 // Theme Detection
@@ -178,17 +179,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Secret Scanner
-    const scanSecretsBtn = document.getElementById('scan-secrets-btn');
-    const secretsModal = document.getElementById('secrets-modal');
-    const secretsResults = document.getElementById('secrets-results');
-    const secretsProgress = document.getElementById('secrets-progress');
-    const secretsProgressBar = document.getElementById('secrets-progress-bar');
-    const secretsProgressText = document.getElementById('secrets-progress-text');
-    const secretsSearch = document.getElementById('secrets-search');
-    const secretsSearchContainer = document.getElementById('secrets-search-container');
+    // Unified Extractor
+    const extractorBtn = document.getElementById('extractor-btn');
+    const extractorModal = document.getElementById('extractor-modal');
+    const extractorSearch = document.getElementById('extractor-search');
+    const extractorSearchContainer = document.getElementById('extractor-search-container');
+    const extractorProgress = document.getElementById('extractor-progress');
+    const extractorProgressBar = document.getElementById('extractor-progress-bar');
+    const extractorProgressText = document.getElementById('extractor-progress-text');
+    const startScanBtn = document.getElementById('start-scan-btn');
 
+    // Results containers
+    const secretsResults = document.getElementById('secrets-results');
+    const endpointsResults = document.getElementById('endpoints-results');
+
+    // State
     let currentSecretResults = [];
+    let currentEndpointResults = [];
+    let activeTab = 'secrets';
+
+    // Tab switching
+    document.querySelectorAll('.extractor-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Update UI
+            document.querySelectorAll('.extractor-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            tab.classList.add('active');
+            const tabId = tab.getAttribute('data-tab');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            // Update state
+            activeTab = tabId;
+
+            // Update search placeholder
+            if (extractorSearch) {
+                extractorSearch.placeholder = activeTab === 'secrets' ? 'Search secrets...' : 'Search endpoints...';
+                extractorSearch.value = '';
+
+                // Show/hide search based on results existence
+                const hasResults = activeTab === 'secrets' ? currentSecretResults.length > 0 : currentEndpointResults.length > 0;
+                extractorSearchContainer.style.display = hasResults ? 'block' : 'none';
+            }
+        });
+    });
 
     function renderSecretResults(results) {
         if (results.length === 0) {
@@ -203,46 +237,129 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${escapeHtml(r.type)}</td>
                 <td class="secret-match" title="${escapeHtml(r.match)}">${escapeHtml(r.match.substring(0, 50))}${r.match.length > 50 ? '...' : ''}</td>
                 <td><span class="confidence-badge ${confidenceClass}">${r.confidence}%</span></td>
-                <td class="secret-file"><a href="${escapeHtml(r.file)}" target="_blank" title="${escapeHtml(r.file)}">${escapeHtml(r.file)}</a></td>
+                <td class="secret-file"><a href="${escapeHtml(r.file)}" target="_blank" title="${escapeHtml(r.file)}">${escapeHtml(r.file.split('/').pop())}</a></td>
             </tr>`;
         });
         html += '</tbody></table>';
         secretsResults.innerHTML = html;
     }
 
-    if (scanSecretsBtn) {
-        scanSecretsBtn.addEventListener('click', async () => {
-            secretsModal.style.display = 'block';
-            secretsResults.innerHTML = '';
-            secretsProgress.style.display = 'block';
-            secretsProgressBar.style.setProperty('--progress', '0%');
-            secretsProgressText.textContent = 'Scanning JS files...';
-            if (secretsSearch) secretsSearch.value = ''; // Reset search
-            if (secretsSearchContainer) secretsSearchContainer.style.display = 'none';
+    function renderEndpointResults(results) {
+        if (results.length === 0) {
+            endpointsResults.innerHTML = '<div class="empty-state">No endpoints found matching your criteria.</div>';
+            return;
+        }
 
-            currentSecretResults = await scanForSecrets(state.requests, (processed, total) => {
-                const percent = Math.round((processed / total) * 100);
-                secretsProgressBar.style.setProperty('--progress', `${percent}%`);
-                secretsProgressText.textContent = `Scanning JS files... ${processed}/${total}`;
+        let html = '<table class="secrets-table"><thead><tr><th>Method</th><th>Endpoint</th><th>Confidence</th><th>Source File</th><th>Actions</th></tr></thead><tbody>';
+        results.forEach((r, index) => {
+            const confidenceClass = r.confidence >= 80 ? 'high' : (r.confidence >= 50 ? 'medium' : 'low');
+            const methodClass = r.method === 'POST' || r.method === 'PUT' || r.method === 'DELETE' ? 'method-write' : 'method-read';
+
+            // Construct full URL if endpoint is relative
+            let fullUrl = r.endpoint;
+            if (r.endpoint.startsWith('/') && r.baseUrl) {
+                fullUrl = r.baseUrl + r.endpoint;
+            }
+
+            html += `<tr>
+                <td><span class="http-method ${methodClass}">${escapeHtml(r.method)}</span></td>
+                <td class="endpoint-path" title="${escapeHtml(r.endpoint)}">${escapeHtml(r.endpoint)}</td>
+                <td><span class="confidence-badge ${confidenceClass}">${r.confidence}%</span></td>
+                <td class="secret-file"><a href="${escapeHtml(r.file)}" target="_blank" title="${escapeHtml(r.file)}">${escapeHtml(r.file.split('/').pop())}</a></td>
+                <td><button class="copy-url-btn" data-url="${escapeHtml(fullUrl)}" title="Copy full URL">
+                    <svg viewBox="0 0 24 24" width="14" height="14">
+                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" fill="currentColor"/>
+                    </svg>
+                </button></td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        endpointsResults.innerHTML = html;
+
+        // Add click handlers for copy buttons
+        endpointsResults.querySelectorAll('.copy-url-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const url = btn.getAttribute('data-url');
+                copyToClipboard(url);
+
+                // Visual feedback
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor"/></svg>';
+                btn.style.color = '#81c995';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.color = '';
+                }, 1000);
             });
-
-            secretsProgress.style.display = 'none';
-            if (secretsSearchContainer) secretsSearchContainer.style.display = 'block';
-            renderSecretResults(currentSecretResults);
         });
     }
 
-    if (secretsSearch) {
-        secretsSearch.addEventListener('input', (e) => {
+    if (extractorBtn) {
+        extractorBtn.addEventListener('click', () => {
+            extractorModal.style.display = 'block';
+            // Don't auto-scan, let user choose tab and click start
+        });
+    }
+
+    if (startScanBtn) {
+        startScanBtn.addEventListener('click', async () => {
+            extractorProgress.style.display = 'block';
+            extractorProgressBar.style.setProperty('--progress', '0%');
+            extractorSearchContainer.style.display = 'none';
+
+            if (activeTab === 'secrets') {
+                secretsResults.innerHTML = '';
+                extractorProgressText.textContent = 'Scanning for secrets...';
+
+                currentSecretResults = await scanForSecrets(state.requests, (processed, total) => {
+                    const percent = Math.round((processed / total) * 100);
+                    extractorProgressBar.style.setProperty('--progress', `${percent}%`);
+                    extractorProgressText.textContent = `Scanning JS files... ${processed}/${total}`;
+                });
+
+                renderSecretResults(currentSecretResults);
+                if (currentSecretResults.length > 0) extractorSearchContainer.style.display = 'block';
+
+            } else {
+                endpointsResults.innerHTML = '';
+                extractorProgressText.textContent = 'Extracting endpoints...';
+
+                currentEndpointResults = await extractEndpoints(state.requests, (processed, total) => {
+                    const percent = Math.round((processed / total) * 100);
+                    extractorProgressBar.style.setProperty('--progress', `${percent}%`);
+                    extractorProgressText.textContent = `Extracting endpoints... ${processed}/${total}`;
+                });
+
+                renderEndpointResults(currentEndpointResults);
+                if (currentEndpointResults.length > 0) extractorSearchContainer.style.display = 'block';
+            }
+
+            extractorProgress.style.display = 'none';
+        });
+    }
+
+    if (extractorSearch) {
+        extractorSearch.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            const filtered = currentSecretResults.filter(r =>
-                r.type.toLowerCase().includes(term) ||
-                r.match.toLowerCase().includes(term) ||
-                r.file.toLowerCase().includes(term)
-            );
-            renderSecretResults(filtered);
+
+            if (activeTab === 'secrets') {
+                const filtered = currentSecretResults.filter(r =>
+                    r.type.toLowerCase().includes(term) ||
+                    r.match.toLowerCase().includes(term) ||
+                    r.file.toLowerCase().includes(term)
+                );
+                renderSecretResults(filtered);
+            } else {
+                const filtered = currentEndpointResults.filter(r =>
+                    r.endpoint.toLowerCase().includes(term) ||
+                    r.method.toLowerCase().includes(term) ||
+                    r.file.toLowerCase().includes(term)
+                );
+                renderEndpointResults(filtered);
+            }
         });
     }
+
 
     // In-pane search functionality
     const requestSearchInput = document.getElementById('request-search');
