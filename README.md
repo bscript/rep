@@ -22,11 +22,6 @@
   <a href="https://github.com/sponsors/bscript">
     <img src="https://img.shields.io/badge/Sponsor-%F0%9F%92%96-ea4aaa?style=flat-square" alt="Sponsor">
   </a>
-
-  <!-- Bitcoin Sponsor -->
-  <a href="https://github.com/user-attachments/assets/8e6933b5-8579-480b-99cf-161a392b4153">
-    <img src="https://img.shields.io/badge/Bitcoin%20Sponsor-₿-f7931a?style=flat-square&logo=bitcoin&logoColor=white" alt="Bitcoin Sponsor">
-  </a>
 </p>
 
 # rep+
