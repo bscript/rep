@@ -384,27 +384,136 @@
                 <h3>Settings</h3>
                 <button class="close-modal">&times;</button>
             </div>
+
             <div class="modal-body">
+                <!-- Provider selection -->
                 <div class="form-group">
-                    <label for="anthropic-api-key">Anthropic API Key</label>
-                    <input type="password" id="anthropic-api-key" class="form-control" placeholder="sk-ant-...">
-                    <p class="help-text">Required for "Explain Request" feature. Stored locally.</p>
-                </div>
-                <div class="form-group">
-                    <label for="anthropic-model">Model</label>
-                    <select id="anthropic-model" class="form-control">
-                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Oct 2024)</option>
-                        <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet (Jun 2024)</option>
-                        <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                        <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                    <label for="ai-provider">AI Provider</label>
+                    <select id="ai-provider" class="form-control">
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="openai">OpenAI / OpenAI-compatible</option>
+                        <option value="ollama">Ollama (local)</option>
                     </select>
+                    <p class="help-text">Choose which backend to use for explanations.</p>
+                </div>
+
+                <!-- Anthropic section -->
+                <div class="ai-provider-section" data-provider="anthropic">
+                    <div class="form-group">
+                        <label for="anthropic-api-key">Anthropic API Key</label>
+                        <input type="password" id="anthropic-api-key" class="form-control" placeholder="sk-ant-...">
+                        <p class="help-text">
+                            Used when provider is Anthropic. Stored locally.
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label for="anthropic-model">Anthropic Model</label>
+                        <select id="anthropic-model" class="form-control">
+                            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Oct 2024)</option>
+                            <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet (Jun 2024)</option>
+                            <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                            <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- OpenAI-compatible section -->
+                <div class="ai-provider-section" data-provider="openai">
+                    <div class="form-group">
+                        <label for="openai-api-key">OpenAI API Key</label>
+                        <input type="password" id="openai-api-key" class="form-control" placeholder="sk-...">
+                        <p class="help-text">
+                            Used when provider is OpenAI or any OpenAI-compatible endpoint that requires a bearer token.
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label for="ai-openai-base-url">OpenAI Base URL</label>
+                        <input type="text" id="ai-openai-base-url" class="form-control"
+                            placeholder="https://api.openai.com/v1 or http://localhost:8000/v1">
+                    </div>
+                    <div class="form-group">
+                        <label for="ai-openai-model">OpenAI Model</label>
+                        <input type="text" id="ai-openai-model" class="form-control"
+                            placeholder="gpt-4.1-mini, my-vllm-model, ...">
+                    </div>
+                </div>
+
+                <!-- Ollama section -->
+                <div class="ai-provider-section" data-provider="ollama">
+                    <div class="form-group">
+                        <label for="ai-ollama-base-url">Ollama Base URL</label>
+                        <input type="text" id="ai-ollama-base-url" class="form-control"
+                            placeholder="http://127.0.0.1:11434">
+                    </div>
+                    <div class="form-group">
+                        <label for="ai-ollama-model">Ollama Model</label>
+                        <input type="text" id="ai-ollama-model" class="form-control"
+                            placeholder="llama3.2:3b, mistral, ...">
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Global LLM behaviour -->
+                <h4>Global LLM behaviour</h4>
+                <div class="form-group">
+                    <label for="ai-prompt-template">Global system prompt</label>
+                    <textarea id="ai-prompt-template" class="form-control" rows="3"
+                            placeholder="System prompt used to instruct the LLM. Leave empty for default."></textarea>
+                    <p class="help-text">
+                        Applied as the default system message for all AI calls if no per-action override is set.
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label for="ai-context-template">Global context</label>
+                    <textarea id="ai-context-template" class="form-control" rows="3"
+                            placeholder="Optional context injected before the HTTP request (e.g., environment, target details)."></textarea>
+                    <p class="help-text">
+                        Included in the user message for all AI calls if no per-action override is set.
+                    </p>
+                </div>
+
+                <hr>
+
+                <!-- Explain Request profile -->
+                <h4>Explain Request profile</h4>
+                <div class="form-group">
+                    <label for="ai-prompt-explain">Explain system prompt (optional)</label>
+                    <textarea id="ai-prompt-explain" class="form-control" rows="3"
+                            placeholder="Overrides the global system prompt when using 'Explain Request'."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="ai-context-explain">Explain context (optional)</label>
+                    <textarea id="ai-context-explain" class="form-control" rows="3"
+                            placeholder="Overrides the global context for 'Explain Request'."></textarea>
+                </div>
+
+                <hr>
+
+                <!-- Suggest Attacks profile -->
+                <h4>Suggest Attacks profile</h4>
+                <div class="form-group">
+                    <label for="ai-prompt-suggest">Suggest Attacks system prompt (optional)</label>
+                    <textarea id="ai-prompt-suggest" class="form-control" rows="3"
+                            placeholder="Overrides the global system prompt when using 'Suggest Attacks'."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="ai-context-suggest">Suggest Attacks context (optional)</label>
+                    <textarea id="ai-context-suggest" class="form-control" rows="3"
+                            placeholder="Overrides the global context for 'Suggest Attacks'."></textarea>
                 </div>
             </div>
+
             <div class="modal-footer">
-                <button id="save-settings-btn" class="primary-btn">Save</button>
+                <button id="save-settings-btn" class="btn primary">Save Settings</button>
+                <button class="btn secondary close-modal">Cancel</button>
             </div>
         </div>
     </div>
+
 
     <!-- Explanation Modal -->
     <div id="explanation-modal" class="modal">
