@@ -13,10 +13,10 @@
         "webRequest",
         "webRequestBlocking"
     ],
-    "host_permissions": [],
-    "optional_host_permissions": [
+    "host_permissions": [
         "<all_urls>"
     ],
+    "optional_host_permissions": [],
     "icons": {
         "16": "icons/icon16.png",
         "32": "icons/icon32.png",

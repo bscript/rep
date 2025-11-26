@@ -162,3 +162,28 @@ setInterval(() => {
         }
     }
 }, 30000);
+
+// Proxy fetch to bypass CORS using extension host permissions
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message && message.type === 'proxyFetch') {
+        (async () => {
+            try {
+                const { url, options } = message;
+                const res = await fetch(url, options || {});
+                const text = await res.text();
+                const headersObj = {};
+                res.headers.forEach((v, k) => { headersObj[k] = v; });
+                sendResponse({
+                    ok: true,
+                    status: res.status,
+                    statusText: res.statusText,
+                    headers: headersObj,
+                    body: text
+                });
+            } catch (e) {
+                sendResponse({ ok: false, error: e.message });
+            }
+        })();
+        return true; // keep the message channel open for async sendResponse
+    }
+});

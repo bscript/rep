@@ -1,15 +1,20 @@
 // AI Integration Module (Anthropic)
 
+import { settings } from './settings.js';
+
 export function getAISettings() {
     return {
-        apiKey: localStorage.getItem('anthropic_api_key') || '',
-        model: localStorage.getItem('anthropic_model') || 'claude-3-5-sonnet-20241022'
+        apiKey: settings.anthropicApiKey.value || '',
+        model: settings.anthropicModel.value || 'claude-3-5-sonnet-20241022'
     };
 }
 
 export function saveAISettings(apiKey, model) {
-    localStorage.setItem('anthropic_api_key', apiKey);
-    localStorage.setItem('anthropic_model', model);
+    // This function is no longer needed as settings are saved via the settings modal
+    // Keeping it for compatibility if needed, but it should update the settings object
+    settings.anthropicApiKey.value = apiKey;
+    settings.anthropicModel.value = model;
+    import('./settings.js').then(m => m.saveSettings());
 }
 
 export async function streamExplanationFromClaude(apiKey, model, request, onUpdate) {
@@ -72,11 +77,6 @@ export async function streamExplanationFromClaude(apiKey, model, request, onUpda
 }
 
 export function setupAIFeatures(elements) {
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsModal = document.getElementById('settings-modal');
-    const saveSettingsBtn = document.getElementById('save-settings-btn');
-    const anthropicApiKeyInput = document.getElementById('anthropic-api-key');
-    const anthropicModelSelect = document.getElementById('anthropic-model');
     const aiMenuBtn = document.getElementById('ai-menu-btn');
     const aiMenuDropdown = document.getElementById('ai-menu-dropdown');
     const explainBtn = document.getElementById('explain-btn');
@@ -84,30 +84,6 @@ export function setupAIFeatures(elements) {
     const explanationModal = document.getElementById('explanation-modal');
     const explanationContent = document.getElementById('explanation-content');
     const ctxExplainAi = document.getElementById('ctx-explain-ai');
-
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', () => {
-            const { apiKey, model } = getAISettings();
-            anthropicApiKeyInput.value = apiKey;
-            if (anthropicModelSelect) anthropicModelSelect.value = model;
-
-            settingsModal.style.display = 'block';
-        });
-    }
-
-    if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', () => {
-            const key = anthropicApiKeyInput.value.trim();
-            const model = anthropicModelSelect ? anthropicModelSelect.value : 'claude-3-5-sonnet-20241022';
-
-            if (key) {
-                saveAISettings(key, model);
-            }
-
-            alert('Settings saved!');
-            settingsModal.style.display = 'none';
-        });
-    }
 
     if (aiMenuBtn && aiMenuDropdown) {
         aiMenuBtn.addEventListener('click', (e) => {
@@ -125,23 +101,27 @@ export function setupAIFeatures(elements) {
         const { apiKey, model } = getAISettings();
         if (!apiKey) {
             alert('Please configure your Anthropic API Key in Settings first.');
-            settingsModal.style.display = 'block';
+            // Open settings modal
+            const settingsBtn = document.getElementById('settings-btn');
+            if (settingsBtn) settingsBtn.click();
             return;
         }
 
-        explanationModal.style.display = 'block';
-        explanationContent.innerHTML = '<div class="loading-spinner">Generating...</div>';
+        if (explanationModal && explanationContent) {
+            explanationModal.style.display = 'block';
+            explanationContent.innerHTML = '<div class="loading-spinner">Generating...</div>';
 
-        try {
-            await streamExplanationFromClaude(apiKey, model, promptPrefix + "\n\n" + content, (text) => {
-                if (typeof marked !== 'undefined') {
-                    explanationContent.innerHTML = marked.parse(text);
-                } else {
-                    explanationContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: sans-serif;">${text}</pre>`;
-                }
-            });
-        } catch (error) {
-            explanationContent.innerHTML = `<div style="color: var(--error-color); padding: 20px;">Error: ${error.message}</div>`;
+            try {
+                await streamExplanationFromClaude(apiKey, model, promptPrefix + "\n\n" + content, (text) => {
+                    if (typeof marked !== 'undefined') {
+                        explanationContent.innerHTML = marked.parse(text);
+                    } else {
+                        explanationContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: sans-serif;">${text}</pre>`;
+                    }
+                });
+            } catch (error) {
+                explanationContent.innerHTML = `<div style="color: var(--error-color); padding: 20px;">Error: ${error.message}</div>`;
+            }
         }
     };
 

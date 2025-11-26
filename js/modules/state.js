@@ -35,56 +35,71 @@ export const oosPatterns = [
     /^\/_next\//,
     /^\/__nextjs/,
     /^\/next\//,
-    
+
     // SvelteKit
     /^\/_app\//,
     /^\/@svelte/,
     /^\/\.svelte-kit\//,
-    
+
     // Nuxt.js
     /^\/_nuxt\//,
     /^\/__nuxt/,
-    
+
     // React/Vite dev server
     /^\/@vite/,
     /^\/@react-refresh/,
     /^\/@id\//,
     /^\/node_modules\//,
     /^\/__vite_/,
-    
+
     // Webpack
     /^\/webpack/,
     /\.hot-update\./,
     /^\/sockjs-node/,
-    
+
     // Source maps
     /\.map$/,
-    
+
     // WebSocket paths
     /^\/_ws$/,
     /^\/ws$/,
     /^\/socket\.io/,
-    
+
     // Common framework assets
     /^\/static\/chunks\//,
     /^\/static\/development\//,
     /^\/static\/webpack\//,
     /^\/_buildManifest\.js/,
     /^\/_ssgManifest\.js/,
-    
+
     // Analytics & tracking (often noise)
     /^\/gtm\.js/,
     /^\/gtag\//,
     /\/analytics/,
     /\/collect\?/,
-    
+
     // CDN/RUM (Real User Monitoring)
     /^\/cdn-cgi\//,
-    
+
     // HMR (Hot Module Replacement)
     /\?t=\d+$/,
     /^\/hmr$/
 ];
+
+/**
+ * Update OOS patterns from settings
+ * @param {string[]} newPatterns - Array of regex strings
+ */
+export function updateOOSPatterns(newPatterns) {
+    oosPatterns.length = 0;
+    newPatterns.forEach(pattern => {
+        try {
+            oosPatterns.push(new RegExp(pattern));
+        } catch (e) {
+            console.error('Invalid OOS pattern:', pattern, e);
+        }
+    });
+}
 
 /**
  * Check if a URL path is out-of-scope (framework noise)

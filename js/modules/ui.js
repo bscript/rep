@@ -214,6 +214,7 @@ export function filterRequests() {
     let visibleCount = 0;
     let oosCount = 0;
     let regexError = false;
+    let debugInfo = [];
 
     items.forEach((item, index) => {
         const request = state.requests[parseInt(item.dataset.index)];
@@ -272,20 +273,26 @@ export function filterRequests() {
                 bodyTextLower.includes(state.currentSearchTerm);
         }
 
-        // Check filter
+        // Check filter match
         let matchesFilter = true;
         if (state.currentFilter !== 'all') {
             if (state.currentFilter === 'starred') {
-                matchesFilter = request.starred;
+                matchesFilter = request.starred || false;
             } else if (state.currentFilter === 'oos') {
-                matchesFilter = !!isOOS; // only show out-of-scope
+                // When OOS filter is active, show ONLY OOS items
+                matchesFilter = isOOS;
+                if (debugInfo.length < 5) {
+                    debugInfo.push(`${url.substring(0, 50)} → isOOS:${isOOS}`);
+                }
             } else {
                 matchesFilter = method === state.currentFilter;
             }
         }
 
-        // Check OOS visibility - when hideOOS is true, hide OOS items
-        const matchesOOS = state.hideOOS ? !isOOS : true;
+        // Check OOS visibility
+        // If filter is 'oos', show ONLY OOS items (matchesFilter handles this)
+        // If filter is NOT 'oos', HIDE OOS items (always)
+        const matchesOOS = state.currentFilter === 'oos' ? true : !isOOS;
 
         if (matchesSearch && matchesFilter && matchesOOS) {
             item.style.display = 'flex';
@@ -900,12 +907,12 @@ export function updateOOSStats(visibleCount, oosCount) {
  */
 export function toggleOOSVisibility() {
     state.hideOOS = !state.hideOOS;
-    
+
     if (elements.oosToggle) {
         elements.oosToggle.classList.toggle('active', state.hideOOS);
         elements.oosToggle.title = state.hideOOS ? 'Show all requests (including OOS)' : 'Hide framework noise (OOS)';
     }
-    
+
     filterRequests();
 }
 
@@ -921,21 +928,21 @@ export function sortByColumn(column) {
         state.sortColumn = column;
         state.sortOrder = 'asc';
     }
-    
+
     // Update header indicators
     updateSortIndicators();
-    
+
     // Sort the DOM elements
     const items = Array.from(elements.requestList.querySelectorAll('.request-item'));
-    
+
     items.sort((a, b) => {
         const reqA = state.requests[parseInt(a.dataset.index)];
         const reqB = state.requests[parseInt(b.dataset.index)];
-        
+
         if (!reqA || !reqB) return 0;
-        
+
         let comparison = 0;
-        
+
         switch (column) {
             case 'num':
                 comparison = (reqA.num || 0) - (reqB.num || 0);
@@ -958,10 +965,10 @@ export function sortByColumn(column) {
             default:
                 comparison = 0;
         }
-        
+
         return state.sortOrder === 'asc' ? comparison : -comparison;
     });
-    
+
     // Re-append sorted items
     items.forEach(item => elements.requestList.appendChild(item));
 }
@@ -971,7 +978,7 @@ export function sortByColumn(column) {
  */
 function updateSortIndicators() {
     if (!elements.requestListHeader) return;
-    
+
     const sortableHeaders = elements.requestListHeader.querySelectorAll('[data-sort]');
     sortableHeaders.forEach(header => {
         header.classList.remove('sort-asc', 'sort-desc');
@@ -986,14 +993,14 @@ function updateSortIndicators() {
  */
 export function initSortableHeaders() {
     if (!elements.requestListHeader) return;
-    
+
     const sortableHeaders = elements.requestListHeader.querySelectorAll('[data-sort]');
     sortableHeaders.forEach(header => {
         header.addEventListener('click', () => {
             sortByColumn(header.dataset.sort);
         });
     });
-    
+
     // Set initial sort indicator
     updateSortIndicators();
 }

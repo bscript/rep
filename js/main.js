@@ -19,12 +19,12 @@ import { handleSendRequest, initKeyboardShortcuts } from './modules/request-hand
 import { initSearch } from './modules/search.js';
 import { loadSettings, initSettingsModal } from './modules/settings.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize UI Elements
     initUI();
 
-    // Load settings first
-    loadSettings();
+    // Load settings first - MUST await this!
+    await loadSettings();
 
     // Initialize Features
     initTheme();

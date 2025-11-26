@@ -28,10 +28,10 @@
                     </button>
                     <div class="divider-vertical"
                         style="width: 1px; height: 20px; background: var(--border-color); margin: 0 4px;"></div>
-                    <button id="settings-btn" class="icon-btn">
+                    <button id="settings-btn" class="icon-btn" title="Settings">
                         <svg viewBox="0 0 24 24" width="14" height="14">
                             <path
-                                d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5m9 0a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5"
+                                d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"
                                 fill="currentColor" />
                         </svg>
                     </button>
@@ -392,35 +392,6 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Settings</h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="anthropic-api-key">Anthropic API Key</label>
-                    <input type="password" id="anthropic-api-key" class="form-control" placeholder="sk-ant-...">
-                    <p class="help-text">Required for "Explain Request" feature. Stored locally.</p>
-                </div>
-                <div class="form-group">
-                    <label for="anthropic-model">Model</label>
-                    <select id="anthropic-model" class="form-control">
-                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Oct 2024)</option>
-                        <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet (Jun 2024)</option>
-                        <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                        <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="save-settings-btn" class="primary-btn">Save</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Explanation Modal -->
     <div id="explanation-modal" class="modal">
         <div class="modal-content" style="width: 700px; max-width: 90vw;">
@@ -493,16 +464,50 @@
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal">
         <div class="modal-content settings-modal-content">
-            <div class="modal-header">
-                <h2>Settings</h2>
-                <button id="settings-close" class="icon-btn">×</button>
+            <div class="settings-modal-header">
+                <h3>Settings</h3>
+                <div class="settings-header-actions">
+                    <button id="settings-reset" class="secondary-btn">Reset</button>
+                    <button id="settings-save" class="primary-btn">Save</button>
+                    <button id="settings-close" class="close-modal">&times;</button>
+                </div>
             </div>
-            <div id="settings-content" class="settings-container">
-                <!-- Settings sections will be dynamically rendered here -->
-            </div>
-            <div class="modal-footer">
-                <button id="settings-reset" class="secondary-btn">Reset to Defaults</button>
-                <button id="settings-save" class="primary-btn">Save Settings</button>
+            <div class="settings-modal-body">
+                <div class="settings-sidebar">
+                    <button class="settings-tab active" data-tab="ai">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <path
+                                d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"
+                                fill="currentColor" />
+                        </svg>
+                        <span>AI Features</span>
+                    </button>
+                    <button class="settings-tab" data-tab="privacy">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <path
+                                d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
+                                fill="currentColor" />
+                        </svg>
+                        <span>Privacy & Security</span>
+                    </button>
+                    <button class="settings-tab" data-tab="filtering">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" fill="currentColor" />
+                        </svg>
+                        <span>Filtering</span>
+                    </button>
+                </div>
+                <div class="settings-content-area">
+                    <div id="settings-tab-ai" class="settings-tab-content active">
+                        <!-- AI settings will be rendered here -->
+                    </div>
+                    <div id="settings-tab-privacy" class="settings-tab-content">
+                        <!-- Privacy settings will be rendered here -->
+                    </div>
+                    <div id="settings-tab-filtering" class="settings-tab-content">
+                        <!-- Filtering settings will be rendered here -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
