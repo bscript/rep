@@ -1,8 +1,80 @@
 // Request Handler Module
 import { state, addToHistory } from './state.js';
-import { elements, updateHistoryButtons } from './ui.js';
+import { elements, updateHistoryButtons, toggleOOSVisibility } from './ui.js';
 import { parseRequest, executeRequest } from './network.js';
 import { formatBytes, renderDiff, highlightHTTP } from './utils.js';
+import { settings } from './settings.js';
+
+/**
+ * Action definitions (maps action IDs to functions)
+ */
+const SHORTCUT_ACTIONS = {
+    sendRequest: () => {
+        const sendBtn = document.getElementById('send-btn');
+        if (sendBtn && !sendBtn.disabled) {
+            handleSendRequest();
+        }
+    },
+    clearInput: () => {
+        if (elements.rawRequestInput) {
+            elements.rawRequestInput.innerText = '';
+            elements.rawRequestInput.focus();
+        }
+    },
+    toggleOOS: () => {
+        toggleOOSVisibility();
+    }
+};
+
+/**
+ * Check if a keyboard event matches a shortcut definition
+ */
+function matchesShortcut(event, shortcut) {
+    const ctrlMatch = shortcut.ctrl ? (event.ctrlKey || event.metaKey) : !(event.ctrlKey || event.metaKey);
+    const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey;
+    const altMatch = shortcut.alt ? event.altKey : !event.altKey;
+    const keyMatch = event.code === shortcut.key;
+
+    return keyMatch && ctrlMatch && shiftMatch && altMatch;
+}
+
+/**
+ * Initialize keyboard shortcuts for the request panel
+ */
+export function initKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Get shortcuts from settings
+        const shortcuts = settings.keyboardShortcuts.value && Object.keys(settings.keyboardShortcuts.value).length > 0
+            ? settings.keyboardShortcuts.value
+            : settings.keyboardShortcuts.default;
+
+        // Check each shortcut
+        for (const [actionId, shortcut] of Object.entries(shortcuts)) {
+            if (matchesShortcut(e, shortcut)) {
+                e.preventDefault();
+                const action = SHORTCUT_ACTIONS[actionId];
+                if (action) {
+                    action(e);
+                }
+                return;
+            }
+        }
+    });
+}
+
+/**
+ * Get all registered keyboard shortcuts (for help/documentation)
+ */
+export function getKeyboardShortcuts() {
+    const shortcuts = settings.keyboardShortcuts.value && Object.keys(settings.keyboardShortcuts.value).length > 0
+        ? settings.keyboardShortcuts.value
+        : settings.keyboardShortcuts.default;
+    return Object.values(shortcuts).map(s => ({
+        key: s.key,
+        modifiers: [s.ctrl && 'Ctrl', s.shift && 'Shift', s.alt && 'Alt'].filter(Boolean),
+        description: s.description
+    }));
+}
 
 export async function handleSendRequest() {
     const rawContent = elements.rawRequestInput.innerText;

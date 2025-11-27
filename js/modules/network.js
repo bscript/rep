@@ -1,4 +1,5 @@
 // Network Operations
+import { settings } from './settings.js';
 
 export function setupNetworkListener(onRequestCaptured) {
     // Get the current page URL once at setup
@@ -148,19 +149,72 @@ export function parseRequest(rawContent, useHttps) {
 
 export async function executeRequest(url, options) {
     const startTime = performance.now();
-    const response = await fetch(url, options);
-    const endTime = performance.now();
-    const duration = (endTime - startTime).toFixed(0);
 
-    const responseBody = await response.text();
-    const size = new TextEncoder().encode(responseBody).length;
+    // Check if we have permission to access all URLs
+    const hasPermission = await new Promise((resolve) => {
+        chrome.permissions.contains({
+            origins: ['<all_urls>']
+        }, (result) => {
+            resolve(result);
+        });
+    });
 
-    return {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        body: responseBody,
-        size: size,
-        duration: duration
-    };
+    if (!hasPermission) {
+        throw new Error('CORS blocked. Enable "CORS for All Hosts" in Settings ⚙️ to send requests to any domain.');
+    }
+
+    try {
+        // Try direct fetch first (works when host_permissions allow it)
+        const response = await fetch(url, options);
+        const endTime = performance.now();
+        const duration = (endTime - startTime).toFixed(0);
+        const responseBody = await response.text();
+        const size = new TextEncoder().encode(responseBody).length;
+        return {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+            body: responseBody,
+            size,
+            duration
+        };
+    } catch (err) {
+        // Fallback via background proxy (bypasses CORS with host permissions)
+        return new Promise((resolve, reject) => {
+            try {
+                chrome.runtime.sendMessage(
+                    { type: 'proxyFetch', url, options },
+                    (res) => {
+                        const endTime = performance.now();
+                        const duration = (endTime - startTime).toFixed(0);
+
+                        if (chrome.runtime.lastError) {
+                            reject(new Error('Extension proxy error: ' + chrome.runtime.lastError.message));
+                            return;
+                        }
+
+                        if (!res || !res.ok) {
+                            reject(new Error(res && res.error ? res.error : 'Proxy fetch failed'));
+                            return;
+                        }
+
+                        const headers = new Headers();
+                        Object.entries(res.headers || {}).forEach(([k, v]) => headers.append(k, v));
+                        const size = new TextEncoder().encode(res.body || '').length;
+                        resolve({
+                            status: res.status,
+                            statusText: res.statusText,
+                            headers,
+                            body: res.body || '',
+                            size,
+                            duration
+                        });
+                    }
+                );
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+
 }

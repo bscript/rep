@@ -3,7 +3,8 @@ import { state, addRequest } from './modules/state.js';
 import {
     initUI, elements, renderRequestItem, filterRequests, updateHistoryButtons,
     clearAllRequestsUI, setupResizeHandle, setupSidebarResize, setupContextMenu,
-    setupUndoRedo, captureScreenshot, exportRequests, importRequests, toggleAllGroups
+    setupUndoRedo, captureScreenshot, exportRequests, importRequests,
+    initSortableHeaders, initOOSToggle, toggleAllGroups
 } from './modules/ui.js';
 import { setupNetworkListener } from './modules/network.js';
 import { setupBulkReplay } from './modules/bulk-replay.js';
@@ -14,12 +15,16 @@ import { initTheme } from './modules/theme.js';
 import { initMultiTabCapture } from './modules/multi-tab.js';
 import { initExtractorUI } from './modules/extractor-ui.js';
 import { setupAIFeatures } from './modules/ai.js';
-import { handleSendRequest } from './modules/request-handler.js';
+import { handleSendRequest, initKeyboardShortcuts } from './modules/request-handler.js';
 import { initSearch } from './modules/search.js';
+import { loadSettings, initSettingsModal } from './modules/settings.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize UI Elements
     initUI();
+
+    // Load settings first - MUST await this!
+    await loadSettings();
 
     // Initialize Features
     initTheme();
@@ -28,6 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setupBulkReplay();
     setupAIFeatures(elements);
     initSearch();
+    initKeyboardShortcuts();
+    initSortableHeaders();
+    initOOSToggle();
+    initSettingsModal();
 
     // Setup Network Listener (Current Tab)
     setupNetworkListener((request) => {
@@ -82,14 +91,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.querySelectorAll('.filter-btn').forEach(btn => {
+    document.querySelectorAll('.filter-btn:not(#oos-toggle)').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.filter-btn:not(#oos-toggle)').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             state.currentFilter = btn.dataset.filter;
+            // OOS toggle state persists
             filterRequests();
         });
     });
+
+
 
     // Clear All
     if (elements.clearAllBtn) {

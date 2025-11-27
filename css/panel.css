@@ -386,6 +386,12 @@ body {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
+.modal.show {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
 .modal-content {
     background-color: var(--sidebar-bg);
     margin: 5% auto;
@@ -1834,6 +1840,691 @@ pre {
     display: block;
 }
 
+/* ==========================================
+   Request List Header & Sorting
+   ========================================== */
+.request-list-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    background: var(--input-bg);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--secondary-text, #9aa0a6);
+    letter-spacing: 0.5px;
+}
+
+.request-list-header span[data-sort] {
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.request-list-header span[data-sort]:hover {
+    background: var(--hover-bg);
+    color: var(--text-color);
+}
+
+.request-list-header span[data-sort]::after {
+    content: '';
+    display: inline-block;
+    margin-left: 4px;
+    opacity: 0.3;
+}
+
+.request-list-header span[data-sort].sort-asc::after {
+    content: '▲';
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.request-list-header span[data-sort].sort-desc::after {
+    content: '▼';
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.header-num {
+    min-width: 28px;
+    text-align: center;
+}
+
+.header-method {
+    min-width: 46px;
+    text-align: center;
+}
+
+.header-url {
+    flex: 1;
+}
+
+.header-time {
+    min-width: 50px;
+    text-align: right;
+    margin-right: 28px;
+}
+
+/* ==========================================
+   Request Number Badge
+   ========================================== */
+.req-num {
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 28px;
+    text-align: center;
+    color: var(--secondary-text, #9aa0a6);
+    flex-shrink: 0;
+}
+
+/* ==========================================
+   OOS (Out-of-Scope) Styling
+   ========================================== */
+.request-item.oos-item {
+    opacity: 0.5;
+    background: var(--oos-bg, rgba(100, 100, 100, 0.1));
+}
+
+.request-item.oos-item:hover {
+    opacity: 0.7;
+}
+
+.request-item.oos-item .req-url::after {
+    content: 'OOS';
+    margin-left: 6px;
+    font-size: 8px;
+    padding: 1px 4px;
+    background: var(--oos-badge-bg, rgba(156, 39, 176, 0.2));
+    color: var(--oos-badge-color, #ce93d8);
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* OOS Toggle Button */
+#oos-toggle {
+    font-size: 10px;
+    padding: 3px 6px;
+}
+
+#oos-toggle.active {
+    background: var(--oos-badge-bg, rgba(156, 39, 176, 0.2));
+    color: var(--oos-badge-color, #ce93d8);
+    border-color: var(--oos-badge-color, #ce93d8);
+}
+
+/* Request Stats */
+.request-stats {
+    font-size: 10px;
+    color: var(--secondary-text, #9aa0a6);
+    margin-left: auto;
+    padding: 2px 6px;
+    background: var(--stats-bg, rgba(255, 255, 255, 0.05));
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+/* ==========================================
+   Light Theme Overrides for New Elements
+   ========================================== */
+.light-theme .request-list-header {
+    background: #f1f3f4;
+    color: #5f6368;
+}
+
+.light-theme .request-list-header span[data-sort]:hover {
+    background: #e8eaed;
+}
+
+.light-theme .req-num {
+    color: #5f6368;
+}
+
+.light-theme .request-item.oos-item {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.light-theme .request-item.oos-item .req-url::after {
+    background: rgba(156, 39, 176, 0.1);
+    color: #9c27b0;
+}
+
+.light-theme #oos-toggle.active {
+    background: rgba(156, 39, 176, 0.1);
+    color: #9c27b0;
+    border-color: #9c27b0;
+}
+
+.light-theme .request-stats {
+    background: rgba(0, 0, 0, 0.05);
+    color: #5f6368;
+}
+
+/* ==========================================
+   Settings Modal
+   ========================================== */
+.settings-modal-content {
+    width: 750px;
+    max-width: 90vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Settings Header */
+.settings-modal-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.settings-modal-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.settings-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Settings Body - Sidebar + Content */
+.settings-modal-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 400px;
+}
+
+/* Vertical Sidebar */
+.settings-sidebar {
+    width: 170px;
+    background: var(--input-bg);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 6px 0;
+    flex-shrink: 0;
+}
+
+.settings-tab {
+    background: transparent;
+    border: none;
+    color: var(--secondary-text, #9aa0a6);
+    cursor: pointer;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+    width: 100%;
+}
+
+.settings-tab:hover {
+    background: rgba(138, 180, 248, 0.08);
+    color: var(--text-color);
+}
+
+.settings-tab.active {
+    color: #1a73e8;
+    background: rgba(26, 115, 232, 0.1);
+    border-left-color: #1a73e8;
+}
+
+.settings-tab svg {
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.settings-tab.active svg {
+    opacity: 1;
+}
+
+.settings-tab span {
+    flex: 1;
+}
+
+/* Content Area */
+.settings-content-area {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-color);
+}
+
+.settings-tab-content {
+    display: none;
+    padding: 14px 18px;
+}
+
+.settings-tab-content.active {
+    display: block;
+}
+
+/* Setting Sections */
+.setting-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.setting-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.setting-header h3 {
+    margin: 0 0 3px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.setting-header p {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--secondary-text, #9aa0a6);
+}
+
+.setting-content {
+    margin-top: 10px;
+}
+
+/* List Input */
+.list-input {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.list-items:empty::before {
+    content: 'No items added yet';
+    color: var(--secondary-text, #9aa0a6);
+    font-size: 11px;
+    font-style: italic;
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    transition: all 0.2s;
+}
+
+.list-item:hover {
+    background: var(--hover-bg);
+}
+
+.list-item-text {
+    flex: 1;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    color: var(--text-color);
+    word-break: break-all;
+}
+
+.btn-delete {
+    background: transparent;
+    border: none;
+    color: var(--error-color);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0 4px;
+    transition: all 0.2s;
+}
+
+.btn-delete:hover {
+    color: #ff5252;
+    transform: scale(1.1);
+}
+
+.add-item-container {
+    display: flex;
+    gap: 8px;
+}
+
+.add-item-input {
+    flex: 1;
+    padding: 7px 10px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.add-item-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.btn-add {
+    padding: 7px 14px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-add:hover {
+    background: var(--success-color);
+}
+
+/* Text Input */
+.text-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.text-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+/* Select Input */
+.select-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+/* Checkbox Input */
+.checkbox-container {
+    padding: 6px 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+.checkbox-label span {
+    color: var(--text-color);
+}
+
+/* Setting Warning */
+.setting-warning {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(242, 139, 130, 0.1);
+    border: 1px solid rgba(242, 139, 130, 0.3);
+    border-radius: 4px;
+    color: var(--error-color);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* Modal Footer Buttons */
+.secondary-btn {
+    padding: 6px 12px;
+    background: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.secondary-btn:hover {
+    background: var(--hover-bg);
+}
+
+.primary-btn {
+    padding: 6px 12px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.primary-btn:hover {
+    background: var(--success-color);
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background: var(--success-color);
+    color: white;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s;
+    z-index: 10000;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.toast-error {
+    background: var(--error-color);
+}
+
+.toast.toast-success {
+    background: var(--success-color);
+}
+
+/* ============================================
+   Keyboard Shortcuts Settings Styles
+   ============================================ */
+
+/* Main shortcuts container */
+.shortcuts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Individual shortcut row */
+.shortcut-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.shortcut-row:hover {
+    background: rgba(138, 180, 248, 0.05);
+    border-color: rgba(138, 180, 248, 0.3);
+}
+
+/* Shortcut description/label */
+.shortcut-description {
+    font-size: 13px;
+    color: var(--text-color);
+    font-weight: 500;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+}
+
+/* Key capture button */
+.shortcut-key-btn {
+    padding: 8px 16px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    color: var(--accent-color);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 140px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.shortcut-key-btn:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.shortcut-key-btn:active {
+    transform: translateY(0);
+}
+
+/* Capturing state */
+.shortcut-key-btn.capturing {
+    background: rgba(138, 180, 248, 0.15);
+    border-color: var(--accent-color);
+    color: var(--success-color);
+    animation: pulse-capture 1.5s infinite;
+}
+
+@keyframes pulse-capture {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(138, 180, 248, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 4px rgba(138, 180, 248, 0);
+    }
+}
+
+/* Reset button */
+.shortcut-reset-btn {
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: #9aa0a6;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+}
+
+.shortcut-reset-btn:hover {
+    background: rgba(129, 201, 149, 0.1);
+    border-color: var(--success-color);
+    color: var(--success-color);
+    transform: rotate(180deg);
+}
+
+.shortcut-reset-btn:active {
+    transform: rotate(180deg) scale(0.95);
+}
+
+/* Info text for shortcuts section */
+.shortcuts-info {
+    padding: 10px 12px;
+    background: rgba(138, 180, 248, 0.1);
+    border: 1px solid rgba(138, 180, 248, 0.2);
+    border-radius: 4px;
+    font-size: 12px;
+    color: #9aa0a6;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.shortcuts-info strong {
+    color: var(--accent-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .shortcut-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .shortcut-key-btn {
+        width: 100%;
+    }
+
+    .shortcut-reset-btn {
+        width: 100%;
+    }
+}
+
 /* Page Grouping (Top Level) */
 .page-group {
     border-bottom: 2px solid var(--border-color);
@@ -1973,4 +2664,5 @@ pre {
 .group-star-btn.active {
     opacity: 1;
     color: #f4b400;
+
 }
