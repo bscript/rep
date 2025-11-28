@@ -402,12 +402,71 @@ export function selectRequest(index) {
     state.undoStack = [rawText];
     state.redoStack = [];
 
-    // Clear Response
-    elements.rawResponseDisplay.textContent = '';
-    elements.resStatus.textContent = '';
-    elements.resStatus.className = 'status-badge';
-    elements.resTime.textContent = '';
-    elements.resSize.textContent = '';
+    // Display Response if available
+    if (state.selectedRequest.response) {
+        const response = state.selectedRequest.response;
+        const content = response.content || {};
+
+        // Update Status Bar
+        elements.resStatus.textContent = `${response.status} ${response.statusText}`;
+        if (response.status >= 200 && response.status < 300) {
+            elements.resStatus.className = 'status-badge status-2xx';
+        } else if (response.status >= 400 && response.status < 500) {
+            elements.resStatus.className = 'status-badge status-4xx';
+        } else if (response.status >= 500) {
+            elements.resStatus.className = 'status-badge status-5xx';
+        } else {
+            elements.resStatus.className = 'status-badge';
+        }
+
+        elements.resTime.textContent = formatTime(state.selectedRequest.time); // HAR entry has 'time'
+        elements.resSize.textContent = formatBytes(content.size || response.bodySize);
+
+        // Build Raw Response Text
+        let rawResponse = `HTTP/1.1 ${response.status} ${response.statusText}\n`;
+        
+        if (response.headers) {
+            rawResponse += response.headers
+                .map(h => `${h.name}: ${h.value}`)
+                .join('\n');
+        }
+        
+        rawResponse += '\n\n';
+
+        if (content.text) {
+            let bodyText = content.text;
+            // Try to format JSON if applicable
+            if (content.mimeType && content.mimeType.includes('json')) {
+                try {
+                    const json = JSON.parse(bodyText);
+                    bodyText = JSON.stringify(json, null, 2);
+                } catch (e) {
+                    // Use original text if parse fails
+                }
+            }
+            rawResponse += bodyText;
+        }
+
+        // Update Display
+        state.currentResponse = rawResponse;
+        
+        // Set baseline for diff if not set
+        if (!state.regularRequestBaseline) {
+            state.regularRequestBaseline = rawResponse;
+        }
+
+        elements.rawResponseDisplay.innerHTML = highlightHTTP(rawResponse);
+        elements.rawResponseDisplay.style.display = 'block';
+        elements.rawResponseDisplay.style.visibility = 'visible';
+
+    } else {
+        // Clear Response if no data
+        elements.rawResponseDisplay.textContent = '';
+        elements.resStatus.textContent = '';
+        elements.resStatus.className = 'status-badge';
+        elements.resTime.textContent = '';
+        elements.resSize.textContent = '';
+    }
 }
 
 export function filterRequests() {
