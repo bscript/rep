@@ -1301,7 +1301,7 @@ pre {
 .dropdown-content {
     display: none;
     position: absolute;
-    right: 0;
+    left: 0;
     background-color: var(--sidebar-bg);
     min-width: 200px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
