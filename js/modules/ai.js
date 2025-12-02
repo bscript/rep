@@ -1,15 +1,40 @@
-// AI Integration Module (Anthropic)
+// AI Integration Module (Anthropic & Gemini)
 
 export function getAISettings() {
+    const provider = localStorage.getItem('ai_provider') || 'anthropic';
+    
+    if (provider === 'gemini') {
+        return {
+            provider: 'gemini',
+            apiKey: localStorage.getItem('gemini_api_key') || '',
+            model: localStorage.getItem('gemini_model') || 'gemini-flash-latest'
+        };
+    }
+    
     return {
+        provider: 'anthropic',
         apiKey: localStorage.getItem('anthropic_api_key') || '',
         model: localStorage.getItem('anthropic_model') || 'claude-3-5-sonnet-20241022'
     };
 }
 
-export function saveAISettings(apiKey, model) {
-    localStorage.setItem('anthropic_api_key', apiKey);
-    localStorage.setItem('anthropic_model', model);
+export function saveAISettings(provider, apiKey, model) {
+    localStorage.setItem('ai_provider', provider);
+    
+    if (provider === 'gemini') {
+        localStorage.setItem('gemini_api_key', apiKey);
+        localStorage.setItem('gemini_model', model);
+    } else {
+        localStorage.setItem('anthropic_api_key', apiKey);
+        localStorage.setItem('anthropic_model', model);
+    }
+}
+
+export async function streamExplanation(apiKey, model, request, onUpdate, provider = 'anthropic') {
+    if (provider === 'gemini') {
+        return streamExplanationFromGemini(apiKey, model, request, onUpdate);
+    }
+    return streamExplanationFromClaude(apiKey, model, request, onUpdate);
 }
 
 export async function streamExplanationFromClaude(apiKey, model, request, onUpdate) {
@@ -71,12 +96,79 @@ export async function streamExplanationFromClaude(apiKey, model, request, onUpda
     return fullText;
 }
 
+export async function streamExplanationFromGemini(apiKey, model, request, onUpdate) {
+    const systemPrompt = "You are an expert security researcher and web developer. Explain the following HTTP request in detail, highlighting interesting parameters, potential security implications, and what this request is likely doing. Be concise but thorough.";
+    
+    const prompt = `${systemPrompt}\n\nExplain this HTTP request:\n\n${request}`;
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            contents: [{
+                parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 2048
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to communicate with Gemini API');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                if (!dataStr) continue;
+
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.candidates && data.candidates[0]?.content?.parts) {
+                        for (const part of data.candidates[0].content.parts) {
+                            if (part.text) {
+                                fullText += part.text;
+                                onUpdate(fullText);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse errors for incomplete chunks
+                }
+            }
+        }
+    }
+
+    return fullText;
+}
+
 export function setupAIFeatures(elements) {
     const settingsBtn = document.getElementById('settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const aiProviderSelect = document.getElementById('ai-provider');
     const anthropicApiKeyInput = document.getElementById('anthropic-api-key');
     const anthropicModelSelect = document.getElementById('anthropic-model');
+    const geminiApiKeyInput = document.getElementById('gemini-api-key');
+    const geminiModelSelect = document.getElementById('gemini-model');
+    const anthropicSettings = document.getElementById('anthropic-settings');
+    const geminiSettings = document.getElementById('gemini-settings');
     const aiMenuBtn = document.getElementById('ai-menu-btn');
     const aiMenuDropdown = document.getElementById('ai-menu-dropdown');
     const explainBtn = document.getElementById('explain-btn');
@@ -85,11 +177,37 @@ export function setupAIFeatures(elements) {
     const explanationContent = document.getElementById('explanation-content');
     const ctxExplainAi = document.getElementById('ctx-explain-ai');
 
+    // Handle provider switching
+    if (aiProviderSelect) {
+        aiProviderSelect.addEventListener('change', () => {
+            const provider = aiProviderSelect.value;
+            if (provider === 'gemini') {
+                anthropicSettings.style.display = 'none';
+                geminiSettings.style.display = 'block';
+            } else {
+                anthropicSettings.style.display = 'block';
+                geminiSettings.style.display = 'none';
+            }
+        });
+    }
+
     if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
-            const { apiKey, model } = getAISettings();
-            anthropicApiKeyInput.value = apiKey;
-            if (anthropicModelSelect) anthropicModelSelect.value = model;
+            const { provider, apiKey, model } = getAISettings();
+            
+            if (aiProviderSelect) aiProviderSelect.value = provider;
+            
+            if (provider === 'gemini') {
+                geminiApiKeyInput.value = apiKey;
+                if (geminiModelSelect) geminiModelSelect.value = model;
+                anthropicSettings.style.display = 'none';
+                geminiSettings.style.display = 'block';
+            } else {
+                anthropicApiKeyInput.value = apiKey;
+                if (anthropicModelSelect) anthropicModelSelect.value = model;
+                anthropicSettings.style.display = 'block';
+                geminiSettings.style.display = 'none';
+            }
 
             settingsModal.style.display = 'block';
         });
@@ -97,11 +215,19 @@ export function setupAIFeatures(elements) {
 
     if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener('click', () => {
-            const key = anthropicApiKeyInput.value.trim();
-            const model = anthropicModelSelect ? anthropicModelSelect.value : 'claude-3-5-sonnet-20241022';
+            const provider = aiProviderSelect ? aiProviderSelect.value : 'anthropic';
+            let key, model;
+            
+            if (provider === 'gemini') {
+                key = geminiApiKeyInput.value.trim();
+                model = geminiModelSelect ? geminiModelSelect.value : 'gemini-flash-latest';
+            } else {
+                key = anthropicApiKeyInput.value.trim();
+                model = anthropicModelSelect ? anthropicModelSelect.value : 'claude-3-5-sonnet-20241022';
+            }
 
             if (key) {
-                saveAISettings(key, model);
+                saveAISettings(provider, key, model);
             }
 
             alert('Settings saved!');
@@ -122,9 +248,10 @@ export function setupAIFeatures(elements) {
     }
 
     const handleAIRequest = async (promptPrefix, content) => {
-        const { apiKey, model } = getAISettings();
+        const { provider, apiKey, model } = getAISettings();
         if (!apiKey) {
-            alert('Please configure your Anthropic API Key in Settings first.');
+            const providerName = provider === 'gemini' ? 'Gemini' : 'Anthropic';
+            alert(`Please configure your ${providerName} API Key in Settings first.`);
             settingsModal.style.display = 'block';
             return;
         }
@@ -133,13 +260,13 @@ export function setupAIFeatures(elements) {
         explanationContent.innerHTML = '<div class="loading-spinner">Generating...</div>';
 
         try {
-            await streamExplanationFromClaude(apiKey, model, promptPrefix + "\n\n" + content, (text) => {
+            await streamExplanation(apiKey, model, promptPrefix + "\n\n" + content, (text) => {
                 if (typeof marked !== 'undefined') {
                     explanationContent.innerHTML = marked.parse(text);
                 } else {
                     explanationContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: sans-serif;">${text}</pre>`;
                 }
-            });
+            }, provider);
         } catch (error) {
             explanationContent.innerHTML = `<div style="color: var(--error-color); padding: 20px;">Error: ${error.message}</div>`;
         }

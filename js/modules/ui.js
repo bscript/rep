@@ -625,6 +625,39 @@ export function filterRequests() {
         if (state.currentFilter !== 'all') {
             if (state.currentFilter === 'starred') {
                 matchesFilter = request.starred;
+            } else if (state.currentFilter === 'XHR') {
+                // we technically dont know whether this is xhr or not but wanted to be similar to chrome devtools
+
+                // XHR filter: exclude images, fonts, and text files based on Content-Type and extension
+                let contentType = '';
+                if (request.response && request.response.headers) {
+                    const ctHeader = request.response.headers.find(h => 
+                        h.name.toLowerCase() === 'content-type'
+                    );
+                    if (ctHeader) {
+                        contentType = ctHeader.value.toLowerCase();
+                    }
+                }
+                
+                // Exclude image, font, and text content types
+                const excludeTypes = [
+                    'image/', 'font/', 'text/html', 'text/plain', 'text/xml',
+                    'application/font', 'application/x-font'
+                ];
+                
+                const isExcludedByContentType = excludeTypes.some(type => contentType.includes(type));
+                
+                // Also check by extension
+                const excludeExtensions = [
+                    '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.ico', '.bmp',
+                    '.woff', '.woff2', '.ttf', '.eot', '.otf',
+                    '.txt', '.xml', '.html', '.htm'
+                ];
+                const isExcludedByExtension = excludeExtensions.some(ext => {
+                    return urlLower.endsWith(ext) || urlLower.includes(ext + '?');
+                });
+                
+                matchesFilter = !isExcludedByContentType && !isExcludedByExtension;
             } else {
                 matchesFilter = method === state.currentFilter;
             }
