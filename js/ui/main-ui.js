@@ -277,9 +277,9 @@ function setupEventListeners() {
     events.on(EVENT_NAMES.UI_REQUEST_SELECTED, ({ index, rawText, useHttps }) => {
         // Highlight in list
         document.querySelectorAll('.request-item').forEach(el => el.classList.remove('selected'));
-        const requestList = document.getElementById('request-list');
-        if (requestList && requestList.children[index]) {
-            requestList.children[index].classList.add('selected');
+        const selectedItem = Array.from(document.querySelectorAll('.request-item')).find(el => el.dataset.index === String(index));
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
         }
 
         // Hide diff toggle (only for bulk replay)
