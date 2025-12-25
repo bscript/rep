@@ -18,6 +18,7 @@ import { initTheme } from './ui/theme.js';
 import { initMultiTabCapture } from './network/multi-tab.js';
 import { initExtractorUI } from './features/extractors/index.js';
 import { setupAIFeatures } from './features/ai/index.js';
+import { setupLLMChat } from './features/llm-chat/index.js';
 import { handleSendRequest } from './network/handler.js';
 import { initSearch } from './search/index.js';
 
@@ -32,12 +33,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize UI Elements
     initUI();
 
+    // Ensure all modals are closed by default
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.style.display = 'none';
+    });
+
     // Initialize Features
     initTheme();
     initMultiTabCapture();
     initExtractorUI();
     setupBulkReplay();
     setupAIFeatures(elements);
+    setupLLMChat(elements);
     initSearch();
 
     // Promotional Banner

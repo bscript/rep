@@ -42,6 +42,8 @@ export function initUI() {
     elements.colorFilterBtn = document.getElementById('color-filter-btn');
     elements.toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
     elements.showSidebarBtn = document.getElementById('show-sidebar-btn');
+    elements.llmChatToggleBtn = document.getElementById('llm-chat-toggle-btn');
+    elements.llmChatPane = document.getElementById('llm-chat-pane');
     
     // Filter elements
     elements.methodFilterBtn = document.getElementById('method-filter-btn');

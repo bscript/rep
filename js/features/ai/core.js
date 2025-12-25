@@ -140,6 +140,24 @@ export async function streamExplanationWithSystem(apiKey, model, systemPrompt, u
     return streamExplanationFromClaudeWithSystem(apiKey, model, systemPrompt, userPrompt, onUpdate);
 }
 
+/**
+ * Stream chat with proper message history (rolling context)
+ * @param {string} apiKey - API key
+ * @param {string} model - Model name
+ * @param {Array} messages - Array of { role: 'system'|'user'|'assistant', content: string }
+ * @param {Function} onUpdate - Callback for streaming updates
+ * @param {string} provider - Provider name ('anthropic', 'gemini', 'local')
+ */
+export async function streamChatWithMessages(apiKey, model, messages, onUpdate, provider = 'anthropic') {
+    if (provider === 'gemini') {
+        return streamChatFromGeminiWithMessages(apiKey, model, messages, onUpdate);
+    }
+    if (provider === 'local') {
+        return streamChatFromLocalWithMessages(apiKey, model, messages, onUpdate);
+    }
+    return streamChatFromClaudeWithMessages(apiKey, model, messages, onUpdate);
+}
+
 export async function streamExplanationFromClaude(apiKey, model, request, onUpdate) {
     const systemPrompt = "You are an expert security researcher and web developer. Explain the following HTTP request in detail, highlighting interesting parameters, potential security implications, and what this request is likely doing. Be concise but thorough.";
 
@@ -245,6 +263,148 @@ export async function streamExplanationFromClaudeWithSystem(apiKey, model, syste
                     if (data.type === 'content_block_delta' && data.delta && data.delta.text) {
                         fullText += data.delta.text;
                         onUpdate(fullText);
+                    }
+                } catch (e) {
+                    // Ignore parse errors for incomplete chunks
+                }
+            }
+        }
+    }
+
+    return fullText;
+}
+
+/**
+ * Stream chat from Claude with proper message history
+ */
+export async function streamChatFromClaudeWithMessages(apiKey, model, messages, onUpdate) {
+    // Separate system message from conversation messages
+    const systemMessage = messages.find(m => m.role === 'system');
+    const conversationMessages = messages.filter(m => m.role !== 'system');
+    
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+            model: model,
+            max_tokens: 4096,
+            system: systemMessage?.content || '',
+            stream: true,
+            messages: conversationMessages
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to communicate with Anthropic API');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                if (!dataStr || dataStr === '[DONE]') continue;
+
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.type === 'content_block_delta' && data.delta && data.delta.text) {
+                        fullText += data.delta.text;
+                        onUpdate(fullText);
+                    }
+                } catch (e) {
+                    // Ignore parse errors for incomplete chunks
+                }
+            }
+        }
+    }
+
+    return fullText;
+}
+
+/**
+ * Stream chat from Gemini with proper message history
+ * Note: Gemini API has different format, we'll convert messages to their format
+ */
+export async function streamChatFromGeminiWithMessages(apiKey, model, messages, onUpdate) {
+    // Gemini uses a different format - convert messages
+    // System message is prepended to first user message
+    const systemMessage = messages.find(m => m.role === 'system');
+    const conversationMessages = messages.filter(m => m.role !== 'system');
+    
+    // Build contents array for Gemini (alternating user/model)
+    const contents = [];
+    
+    for (const msg of conversationMessages) {
+        if (msg.role === 'user') {
+            // Add system prompt to first user message if available
+            const text = (contents.length === 0 && systemMessage) 
+                ? `${systemMessage.content}\n\n${msg.content}`
+                : msg.content;
+            contents.push({ role: 'user', parts: [{ text }] });
+        } else if (msg.role === 'assistant') {
+            contents.push({ role: 'model', parts: [{ text: msg.content }] });
+        }
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            contents: contents,
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 4096
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to communicate with Gemini API');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                if (!dataStr) continue;
+
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.candidates && data.candidates[0]?.content?.parts) {
+                        for (const part of data.candidates[0].content.parts) {
+                            if (part.text) {
+                                fullText += part.text;
+                                onUpdate(fullText);
+                            }
+                        }
                     }
                 } catch (e) {
                     // Ignore parse errors for incomplete chunks
@@ -696,5 +856,87 @@ export async function streamExplanationFromLocalWithSystem(apiUrl, model, system
                 reject(new Error('Failed to send request to background script: ' + e.message));
             }
         }
+    });
+}
+
+/**
+ * Stream chat from Local/Ollama with proper message history
+ */
+export async function streamChatFromLocalWithMessages(apiKey, model, messages, onUpdate) {
+    return new Promise((resolve, reject) => {
+        let fullText = '';
+        const requestId = `local-${Date.now()}-${Math.random()}`;
+        let isResolved = false;
+
+        // Get or create shared port connection
+        let port;
+        try {
+            port = getOrCreatePort();
+        } catch (e) {
+            reject(e);
+            return;
+        }
+
+        // Convert messages to Ollama format
+        // Ollama expects: { model, messages: [{ role, content }], stream: true }
+        const systemMessage = messages.find(m => m.role === 'system');
+        const conversationMessages = messages.filter(m => m.role !== 'system');
+        
+        // Prepend system message to first user message if available
+        const formattedMessages = conversationMessages.map((msg, index) => {
+            if (index === 0 && msg.role === 'user' && systemMessage) {
+                return {
+                    role: 'user',
+                    content: `${systemMessage.content}\n\n${msg.content}`
+                };
+            }
+            return { role: msg.role, content: msg.content };
+        });
+
+        const portMessageListener = (msg) => {
+            // Only process messages for this request
+            if (!msg.type || msg.requestId !== requestId) return;
+            
+            if (msg.type === 'local-model-stream-chunk') {
+                fullText += msg.chunk;
+                onUpdate(fullText);
+            } else if (msg.type === 'local-model-stream-complete') {
+                if (!isResolved) {
+                    isResolved = true;
+                    portListeners.delete(requestId);
+                    resolve(fullText);
+                }
+            } else if (msg.type === 'local-model-stream-error' || msg.type === 'local-model-error') {
+                if (!isResolved) {
+                    isResolved = true;
+                    portListeners.delete(requestId);
+                    reject(new Error(msg.error || 'Failed to communicate with local model API'));
+                }
+            }
+        };
+
+        // Register listener for this request
+        portListeners.set(requestId, portMessageListener);
+
+        // Send request to background script
+        port.postMessage({
+            type: 'local-model-chat',
+            requestId: requestId,
+            apiUrl: apiKey, // apiKey is actually the API URL for local
+            body: {
+                model: model,
+                messages: formattedMessages,
+                stream: true
+            }
+        });
+
+        // Timeout after 60 seconds
+        setTimeout(() => {
+            if (!isResolved) {
+                isResolved = true;
+                portListeners.delete(requestId);
+                reject(new Error('Request timeout'));
+            }
+        }, 60000);
     });
 }
