@@ -23,8 +23,8 @@ export function initUI() {
     elements.resStatus = document.getElementById('res-status');
     elements.resTime = document.getElementById('res-time');
     elements.resSize = document.getElementById('res-size');
-    elements.historyBackBtn = document.getElementById('history-back');
-    elements.historyFwdBtn = document.getElementById('history-fwd');
+    elements.undoBtn = document.getElementById('undo-btn');
+    elements.redoBtn = document.getElementById('redo-btn');
     elements.copyReqBtn = document.getElementById('copy-req-btn');
     elements.copyResBtn = document.getElementById('copy-res-btn');
     elements.layoutToggleBtn = document.getElementById('layout-toggle-btn');
@@ -42,6 +42,8 @@ export function initUI() {
     elements.colorFilterBtn = document.getElementById('color-filter-btn');
     elements.toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
     elements.showSidebarBtn = document.getElementById('show-sidebar-btn');
+    elements.llmChatToggleBtn = document.getElementById('llm-chat-toggle-btn');
+    elements.llmChatPane = document.getElementById('llm-chat-pane');
     
     // Filter elements
     elements.methodFilterBtn = document.getElementById('method-filter-btn');
@@ -226,25 +228,38 @@ function setupEventListeners() {
         if (elements.rawRequestInput) {
             elements.rawRequestInput.innerHTML = rawText;
         }
+        
+        // Also update raw textarea if it exists (for raw view)
+        if (elements.rawRequestTextarea) {
+            // Extract plain text from HTML (remove highlighting)
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = rawText;
+            elements.rawRequestTextarea.value = tempDiv.textContent || tempDiv.innerText || '';
+        }
 
         // Set HTTPS toggle
         if (elements.useHttpsCheckbox) {
             elements.useHttpsCheckbox.checked = useHttps;
         }
 
-        // Clear Response
-        if (elements.rawResponseDisplay) {
-            elements.rawResponseDisplay.textContent = '';
-        }
-        if (elements.resStatus) {
-            elements.resStatus.textContent = '';
-            elements.resStatus.className = 'status-badge';
-        }
-        if (elements.resTime) {
-            elements.resTime.textContent = '';
-        }
-        if (elements.resSize) {
-            elements.resSize.textContent = '';
+        // Clear Response (only if not being restored from saved state)
+        // Response restoration is handled in request-editor.js restoreEditorState()
+        // We check if response was restored by checking if state.currentResponse exists
+        // If it doesn't exist, clear the UI (this happens for new requests without saved state)
+        if (!state.currentResponse) {
+            if (elements.rawResponseDisplay) {
+                elements.rawResponseDisplay.textContent = '';
+            }
+            if (elements.resStatus) {
+                elements.resStatus.textContent = '';
+                elements.resStatus.className = 'status-badge';
+            }
+            if (elements.resTime) {
+                elements.resTime.textContent = '';
+            }
+            if (elements.resSize) {
+                elements.resSize.textContent = '';
+            }
         }
 
         // Update history buttons

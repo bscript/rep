@@ -10,10 +10,19 @@ import { renderDiff } from '../core/utils/misc.js';
 import { highlightHTTP } from '../core/utils/network.js';
 import { generateHexView } from '../ui/hex-view.js'
 import { generateJsonView } from '../ui/json-view.js'
+import { saveEditorState } from '../ui/request-editor.js';
 
 export async function handleSendRequest() {
     const rawContent = elements.rawRequestInput.innerText;
     const useHttps = elements.useHttpsCheckbox.checked;
+
+    // Save editor state before sending (preserve modifications)
+    if (state.selectedRequest) {
+        const requestIndex = state.requests.indexOf(state.selectedRequest);
+        if (requestIndex !== -1) {
+            saveEditorState(requestIndex);
+        }
+    }
 
     // Add to history
     addToHistory(rawContent, useHttps);
@@ -40,6 +49,14 @@ export async function handleSendRequest() {
 
         // Store current response
         state.currentResponse = rawResponse;
+        
+        // Save editor state (including response) after receiving response
+        if (state.selectedRequest) {
+            const requestIndex = state.requests.indexOf(state.selectedRequest);
+            if (requestIndex !== -1) {
+                saveEditorState(requestIndex);
+            }
+        }
 
         // Handle Diff Baseline
         if (!state.regularRequestBaseline) {
